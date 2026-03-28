@@ -1,0 +1,13 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=/usr/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+revision=ubuntu-24.04-shim
+
+Name: WebKitGTK
+Description: Compatibility shim mapping Wails' 4.0 lookup to Ubuntu 24.04's 4.1 package
+URL: https://webkitgtk.org
+Version: 2.50.4
+Requires: glib-2.0 gtk+-3.0 libsoup-3.0 javascriptcoregtk-4.0
+Libs: -L${libdir} -lwebkit2gtk-4.1
+Cflags: -I${includedir}/webkitgtk-4.1

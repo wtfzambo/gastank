@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"ingo/internal/auth"
 )
 
 // sampleResponse mirrors the /copilot_internal/user shape for tests.
@@ -43,14 +45,12 @@ func TestFetchUsageSuccess(t *testing.T) {
 		if got := r.Header.Get("Authorization"); got != "token test-token" {
 			t.Fatalf("unexpected authorization header: %q", got)
 		}
-		// Required headers.
 		if r.Header.Get("Editor-Version") == "" {
 			t.Fatal("missing Editor-Version header")
 		}
 		if r.Header.Get("X-Github-Api-Version") == "" {
 			t.Fatal("missing X-Github-Api-Version header")
 		}
-
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(sampleResponse))
 	}))
@@ -67,36 +67,27 @@ func TestFetchUsageSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FetchUsage() unexpected error: %v", err)
 	}
-
 	if report.Provider != ProviderName {
 		t.Fatalf("provider name: want %q, got %q", ProviderName, report.Provider)
 	}
-
-	// Metadata
 	if got := report.Metadata["plan"]; got != "pro" {
 		t.Fatalf("plan metadata: want %q, got %q", "pro", got)
 	}
 	if got := report.Metadata["quota_reset_date"]; got != "2026-04-01" {
-		t.Fatalf("quota_reset_date metadata: want %q, got %q", "2026-04-01", got)
+		t.Fatalf("quota_reset_date: want %q, got %q", "2026-04-01", got)
 	}
 	if got := report.Metadata["endpoint"]; got != "/copilot_internal/user" {
-		t.Fatalf("endpoint metadata: want %q, got %q", "/copilot_internal/user", got)
+		t.Fatalf("endpoint: want %q, got %q", "/copilot_internal/user", got)
 	}
-
-	// Premium snapshot
 	if got := report.Metrics["premium_percent_remaining"]; got != 85.0 {
 		t.Fatalf("premium_percent_remaining: want 85.0, got %v", got)
 	}
 	if got := report.Metrics["premium_remaining"]; got != 255 {
 		t.Fatalf("premium_remaining: want 255, got %v", got)
 	}
-
-	// Chat snapshot
 	if got := report.Metrics["chat_percent_remaining"]; got != 90.0 {
 		t.Fatalf("chat_percent_remaining: want 90.0, got %v", got)
 	}
-
-	// Completions are unlimited — sentinel metric present, no percent.
 	if got := report.Metrics["completions_unlimited"]; got != 1 {
 		t.Fatalf("completions_unlimited: want 1, got %v", got)
 	}
@@ -122,7 +113,6 @@ func TestFetchUsageHTTPError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-
 	if !containsAll(err.Error(), []string{"401"}) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -148,79 +138,92 @@ func TestFetchUsageInvalidJSON(t *testing.T) {
 	}
 }
 
-func TestEnvTokenResolverPrefersGHTokenEnv(t *testing.T) {
-	original := runCommandContext
-	defer func() { runCommandContext = original }()
-	runCommandContext = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-		return []byte("cli-token\n"), nil
-	}
+// --- EnvTokenResolver tests ---
 
-	t.Setenv("GITHUB_TOKEN", "env-token")
-	t.Setenv("GH_TOKEN", "gh-token")
+func TestEnvTokenResolverPrefersCopilotToken(t *testing.T) {
+	t.Setenv("GITHUB_COPILOT_TOKEN", "copilot-tok")
+	t.Setenv("GITHUB_TOKEN", "gh-tok")
+	t.Setenv("GH_TOKEN", "")
 
 	got, err := EnvTokenResolver(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "env-token" {
-		t.Fatalf("expected GITHUB_TOKEN to win, got %q", got)
+	if got != "copilot-tok" {
+		t.Fatalf("expected GITHUB_COPILOT_TOKEN to win, got %q", got)
 	}
 }
 
-func TestEnvTokenResolverFallbackToGHEnv(t *testing.T) {
-	original := runCommandContext
-	defer func() { runCommandContext = original }()
-	runCommandContext = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-		return []byte("cli-token\n"), nil
-	}
-
-	t.Setenv("GITHUB_TOKEN", "")
-	t.Setenv("GH_TOKEN", "fallback-tok")
+func TestEnvTokenResolverFallbackToGitHubToken(t *testing.T) {
+	t.Setenv("GITHUB_COPILOT_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "fallback-tok")
+	t.Setenv("GH_TOKEN", "")
 
 	got, err := EnvTokenResolver(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != "fallback-tok" {
-		t.Fatalf("expected GH_TOKEN fallback, got %q", got)
-	}
-}
-
-func TestEnvTokenResolverFallbackToGhCLI(t *testing.T) {
-	original := runCommandContext
-	defer func() { runCommandContext = original }()
-	runCommandContext = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-		if name != "gh" {
-			t.Fatalf("unexpected command: %s", name)
-		}
-		return []byte("cli-token\n"), nil
-	}
-
-	t.Setenv("GITHUB_TOKEN", "")
-	t.Setenv("GH_TOKEN", "")
-
-	got, err := EnvTokenResolver(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "cli-token" {
-		t.Fatalf("expected gh CLI token fallback, got %q", got)
+		t.Fatalf("expected GITHUB_TOKEN fallback, got %q", got)
 	}
 }
 
 func TestEnvTokenResolverNoToken(t *testing.T) {
-	original := runCommandContext
-	defer func() { runCommandContext = original }()
-	runCommandContext = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-		return nil, context.DeadlineExceeded
-	}
-
+	t.Setenv("GITHUB_COPILOT_TOKEN", "")
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("GH_TOKEN", "")
 
 	_, err := EnvTokenResolver(context.Background())
 	if err == nil {
-		t.Fatal("expected error when no auth sources are available")
+		t.Fatal("expected error when no tokens are set")
+	}
+}
+
+// --- StoreTokenResolver tests ---
+
+func TestStoreTokenResolverUsesStore(t *testing.T) {
+	store := auth.NewStore()
+	store.Set(ProviderName, auth.Credential{Token: "store-token", Source: auth.SourceDeviceFlow})
+
+	t.Setenv("GITHUB_COPILOT_TOKEN", "env-token")
+
+	resolver := StoreTokenResolver(store)
+	got, err := resolver(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "store-token" {
+		t.Fatalf("store should win over env, got %q", got)
+	}
+}
+
+func TestStoreTokenResolverFallsBackToEnv(t *testing.T) {
+	store := auth.NewStore() // empty store
+
+	t.Setenv("GITHUB_COPILOT_TOKEN", "env-token")
+
+	resolver := StoreTokenResolver(store)
+	got, err := resolver(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "env-token" {
+		t.Fatalf("expected env fallback, got %q", got)
+	}
+}
+
+func TestNewProviderUsesCredStore(t *testing.T) {
+	store := auth.NewStore()
+	store.Set(ProviderName, auth.Credential{Token: "stored-tok", Source: auth.SourceDeviceFlow})
+
+	// No TokenResolver set — should auto-build from CredStore.
+	p := NewProvider(Config{CredStore: store})
+	tok, err := p.tokenResolver(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tok != "stored-tok" {
+		t.Fatalf("expected stored-tok, got %q", tok)
 	}
 }
 

@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
+	"ingo/internal/auth"
 	"ingo/internal/usage"
 )
 
@@ -28,6 +28,8 @@ type Config struct {
 	HTTPClient    *http.Client
 	BaseURL       string
 	TokenResolver TokenResolver
+	// CredStore, if non-nil, is consulted before EnvTokenResolver.
+	CredStore *auth.Store
 }
 
 // Provider implements usage.Provider for the GitHub Copilot internal user endpoint.
@@ -55,9 +57,9 @@ type quotaSnapshots struct {
 
 // apiResponse models the /copilot_internal/user response shape.
 type apiResponse struct {
-	CopilotPlan      string          `json:"copilot_plan"`
-	QuotaResetDate   string          `json:"quota_reset_date"`
-	QuotaSnapshots   *quotaSnapshots `json:"quota_snapshots"`
+	CopilotPlan    string          `json:"copilot_plan"`
+	QuotaResetDate string          `json:"quota_reset_date"`
+	QuotaSnapshots *quotaSnapshots `json:"quota_snapshots"`
 }
 
 // NewProvider constructs a Provider with the given Config.
@@ -74,7 +76,11 @@ func NewProvider(cfg Config) *Provider {
 
 	resolver := cfg.TokenResolver
 	if resolver == nil {
-		resolver = EnvTokenResolver
+		if cfg.CredStore != nil {
+			resolver = StoreTokenResolver(cfg.CredStore)
+		} else {
+			resolver = EnvTokenResolver
+		}
 	}
 
 	return &Provider{
@@ -121,10 +127,10 @@ func (p *Provider) FetchUsage(ctx context.Context) (*usage.UsageReport, error) {
 	if resp.StatusCode != http.StatusOK {
 		hint := ""
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			hint = " (check that your GitHub token is valid or that gh auth is logged in)"
+			hint = " (token may be invalid or expired — try logging in again)"
 		}
 		if resp.StatusCode == http.StatusNotFound {
-			hint = " (check that the account has Copilot access and that the internal endpoint is still available)"
+			hint = " (check that the account has Copilot access)"
 		}
 		return nil, fmt.Errorf("Copilot API returned %s%s: %s",
 			resp.Status, hint, strings.TrimSpace(string(body)))
@@ -177,28 +183,28 @@ func applySnapshot(report *usage.UsageReport, prefix string, snap *quotaSnapshot
 	addMetricF(report.Metrics, prefix+"_quota_remaining", snap.QuotaRemaining)
 }
 
-var runCommandContext = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-	return exec.CommandContext(ctx, name, args...).Output()
+// StoreTokenResolver returns a TokenResolver that reads from the credential
+// store first, then falls back to EnvTokenResolver.
+func StoreTokenResolver(store *auth.Store) TokenResolver {
+	return func(ctx context.Context) (string, error) {
+		if cred, ok := store.Get(ProviderName); ok && cred.Valid() {
+			return cred.Token, nil
+		}
+		return EnvTokenResolver(ctx)
+	}
 }
 
-// EnvTokenResolver resolves generic GitHub auth for the Copilot usage endpoint.
-// Preference order: GITHUB_TOKEN > GH_TOKEN > `gh auth token`.
-func EnvTokenResolver(ctx context.Context) (string, error) {
-	for _, envVar := range []string{"GITHUB_TOKEN", "GH_TOKEN"} {
-		token := strings.TrimSpace(os.Getenv(envVar))
-		if token != "" {
+// EnvTokenResolver resolves a GitHub token from well-known environment variables.
+// Preference order: GITHUB_COPILOT_TOKEN > GITHUB_TOKEN > GH_TOKEN.
+// The gh CLI is intentionally not consulted; use the device flow for interactive login.
+func EnvTokenResolver(_ context.Context) (string, error) {
+	for _, envVar := range []string{"GITHUB_COPILOT_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"} {
+		if token := strings.TrimSpace(os.Getenv(envVar)); token != "" {
 			return token, nil
 		}
 	}
-
-	if out, err := runCommandContext(ctx, "gh", "auth", "token"); err == nil {
-		if token := strings.TrimSpace(string(out)); token != "" {
-			return token, nil
-		}
-	}
-
 	return "", errors.New(
-		"missing GitHub auth: set GITHUB_TOKEN or GH_TOKEN, or run `gh auth login`",
+		"not authenticated: set GITHUB_COPILOT_TOKEN, or use the in-app login",
 	)
 }
 

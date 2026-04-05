@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -28,7 +27,7 @@ type Config struct {
 	HTTPClient    *http.Client
 	BaseURL       string
 	TokenResolver TokenResolver
-	// CredStore, if non-nil, is consulted before EnvTokenResolver.
+	// CredStore, if non-nil, is used to resolve credentials via StoreTokenResolver.
 	CredStore *auth.Store
 }
 
@@ -80,7 +79,11 @@ func NewProvider(cfg Config) *Provider {
 		if cfg.CredStore != nil {
 			resolver = StoreTokenResolver(cfg.CredStore)
 		} else {
-			resolver = EnvTokenResolver
+			resolver = func(_ context.Context) (string, error) {
+				return "", errors.New(
+					"not authenticated: use the in-app login to connect your GitHub account",
+				)
+			}
 		}
 	}
 
@@ -197,28 +200,17 @@ func applySnapshot(report *usage.UsageReport, prefix string, snap *quotaSnapshot
 }
 
 // StoreTokenResolver returns a TokenResolver that reads from the credential
-// store first, then falls back to EnvTokenResolver.
+// store. If no valid credential is found, it returns a clear error directing
+// the user to the in-app login.
 func StoreTokenResolver(store *auth.Store) TokenResolver {
-	return func(ctx context.Context) (string, error) {
+	return func(_ context.Context) (string, error) {
 		if cred, ok := store.Get(ProviderName); ok && cred.Valid() {
 			return cred.Token, nil
 		}
-		return EnvTokenResolver(ctx)
+		return "", errors.New(
+			"not authenticated: use the in-app login to connect your GitHub account",
+		)
 	}
-}
-
-// EnvTokenResolver resolves a GitHub token from well-known environment variables.
-// Preference order: GITHUB_TOKEN > GH_TOKEN.
-// The gh CLI is intentionally not consulted; use the device flow for interactive login.
-func EnvTokenResolver(_ context.Context) (string, error) {
-	for _, envVar := range []string{"GITHUB_TOKEN", "GH_TOKEN"} {
-		if token := strings.TrimSpace(os.Getenv(envVar)); token != "" {
-			return token, nil
-		}
-	}
-	return "", errors.New(
-		"not authenticated: set GITHUB_TOKEN or GH_TOKEN, or use the in-app login",
-	)
 }
 
 func addMetricF(metrics map[string]float64, key string, value *float64) {

@@ -9,25 +9,25 @@ This first slice keeps things intentionally small:
 - Wails backend bindings via `App.GetUsage`, `App.GetCopilotUsage`, and `App.ListProviders`
 - Simple CLI entry point at `cmd/ingo`
 
-## GitHub Copilot adapter
+## Authentication
 
-The Copilot adapter calls `GET https://api.github.com/copilot_internal/user` and normalizes the response into a shared `UsageReport` shape.
+Ingo authenticates via the GitHub OAuth device flow — no environment variables or external CLI required.
 
-Auth resolution order:
-1. Saved credentials (stored by in-app device-flow login)
-2. `GITHUB_TOKEN` env var
-3. `GH_TOKEN` env var
+On first launch, open the app and click **Sign in with GitHub**. You'll be shown a short code and a URL. Open the URL in your browser, enter the code, and approve. The app polls for approval and stores the resulting token at:
 
-For interactive use, the app exposes a GitHub device-flow login that stores the resulting credential at `<os.UserConfigDir>/ingo/credentials.json`.
+- **Linux:** `~/.config/ingo/credentials.json`
+- **macOS:** `~/Library/Application Support/ingo/credentials.json`
+- **Windows:** `%AppData%\ingo\credentials.json`
+
+Credentials are shared between the GUI and CLI — once logged in via the app, the CLI works without any further setup.
 
 If the token does not have the right access, or the account is not Copilot-enabled, GitHub will typically answer with `401`, `403`, or `404` and the adapter surfaces that response back to the caller.
 
 ## Run the CLI
 
-```bash
-export GITHUB_TOKEN=YOUR_GITHUB_TOKEN
-# or: GH_TOKEN is also accepted
+The CLI shares credentials with the GUI. Log in once via the app, then:
 
+```bash
 go run ./cmd/ingo usage github-copilot
 ```
 

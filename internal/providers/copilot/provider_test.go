@@ -138,51 +138,11 @@ func TestFetchUsageInvalidJSON(t *testing.T) {
 	}
 }
 
-// --- EnvTokenResolver tests ---
-
-func TestEnvTokenResolverPrefersGitHubToken(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "github-tok")
-	t.Setenv("GH_TOKEN", "gh-tok")
-
-	got, err := EnvTokenResolver(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "github-tok" {
-		t.Fatalf("expected GITHUB_TOKEN to win, got %q", got)
-	}
-}
-
-func TestEnvTokenResolverFallbackToGitHubToken(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "")
-	t.Setenv("GH_TOKEN", "fallback-tok")
-
-	got, err := EnvTokenResolver(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "fallback-tok" {
-		t.Fatalf("expected GH_TOKEN fallback, got %q", got)
-	}
-}
-
-func TestEnvTokenResolverNoToken(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "")
-	t.Setenv("GH_TOKEN", "")
-
-	_, err := EnvTokenResolver(context.Background())
-	if err == nil {
-		t.Fatal("expected error when no tokens are set")
-	}
-}
-
 // --- StoreTokenResolver tests ---
 
 func TestStoreTokenResolverUsesStore(t *testing.T) {
 	store := auth.NewStore()
 	store.Set(ProviderName, auth.Credential{Token: "store-token", Source: auth.SourceDeviceFlow})
-
-	t.Setenv("GITHUB_TOKEN", "env-token")
 
 	resolver := StoreTokenResolver(store)
 	got, err := resolver(context.Background())
@@ -190,22 +150,32 @@ func TestStoreTokenResolverUsesStore(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != "store-token" {
-		t.Fatalf("store should win over env, got %q", got)
+		t.Fatalf("expected store-token, got %q", got)
 	}
 }
 
-func TestStoreTokenResolverFallsBackToEnv(t *testing.T) {
-	store := auth.NewStore() // empty store
-
-	t.Setenv("GITHUB_TOKEN", "env-token")
+func TestStoreTokenResolverNoCredentials(t *testing.T) {
+	store := auth.NewStore() // empty — no credentials
 
 	resolver := StoreTokenResolver(store)
-	got, err := resolver(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	_, err := resolver(context.Background())
+	if err == nil {
+		t.Fatal("expected error when store is empty")
 	}
-	if got != "env-token" {
-		t.Fatalf("expected env fallback, got %q", got)
+	if !strings.Contains(err.Error(), "not authenticated") {
+		t.Fatalf("error should mention 'not authenticated', got: %v", err)
+	}
+}
+
+func TestNewProviderNoStoreReturnsError(t *testing.T) {
+	// No CredStore, no TokenResolver — should return a clear error.
+	p := NewProvider(Config{})
+	_, err := p.tokenResolver(context.Background())
+	if err == nil {
+		t.Fatal("expected error when no store and no resolver configured")
+	}
+	if !strings.Contains(err.Error(), "not authenticated") {
+		t.Fatalf("error should mention 'not authenticated', got: %v", err)
 	}
 }
 

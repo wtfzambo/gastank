@@ -80,18 +80,8 @@ func (a *App) save() {
 
 // GetAuthStatus returns whether the Copilot provider has a valid credential.
 func (a *App) GetAuthStatus() AuthStatus {
-	cred, ok := a.credStore.Get(copilot.ProviderName)
-	if ok && cred.Valid() {
+	if cred, ok := a.credStore.Get(copilot.ProviderName); ok && cred.Valid() {
 		return AuthStatus{Authenticated: true, Source: string(cred.Source)}
-	}
-	// Also accept env-var tokens as "authenticated" so the UI doesn't prompt
-	// for device flow when a token is already available via env.
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if _, err := copilot.EnvTokenResolver(ctx); err == nil {
-		return AuthStatus{Authenticated: true, Source: string(auth.SourceEnvVar)}
 	}
 	return AuthStatus{Authenticated: false}
 }

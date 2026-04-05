@@ -208,16 +208,16 @@ func StoreTokenResolver(store *auth.Store) TokenResolver {
 }
 
 // EnvTokenResolver resolves a GitHub token from well-known environment variables.
-// Preference order: GITHUB_COPILOT_TOKEN > GITHUB_TOKEN > GH_TOKEN.
+// Preference order: GITHUB_TOKEN > GH_TOKEN.
 // The gh CLI is intentionally not consulted; use the device flow for interactive login.
 func EnvTokenResolver(_ context.Context) (string, error) {
-	for _, envVar := range []string{"GITHUB_COPILOT_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"} {
+	for _, envVar := range []string{"GITHUB_TOKEN", "GH_TOKEN"} {
 		if token := strings.TrimSpace(os.Getenv(envVar)); token != "" {
 			return token, nil
 		}
 	}
 	return "", errors.New(
-		"not authenticated: set GITHUB_COPILOT_TOKEN, or use the in-app login",
+		"not authenticated: set GITHUB_TOKEN or GH_TOKEN, or use the in-app login",
 	)
 }
 

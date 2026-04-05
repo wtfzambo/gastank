@@ -140,36 +140,33 @@ func TestFetchUsageInvalidJSON(t *testing.T) {
 
 // --- EnvTokenResolver tests ---
 
-func TestEnvTokenResolverPrefersCopilotToken(t *testing.T) {
-	t.Setenv("GITHUB_COPILOT_TOKEN", "copilot-tok")
-	t.Setenv("GITHUB_TOKEN", "gh-tok")
-	t.Setenv("GH_TOKEN", "")
+func TestEnvTokenResolverPrefersGitHubToken(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "github-tok")
+	t.Setenv("GH_TOKEN", "gh-tok")
 
 	got, err := EnvTokenResolver(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "copilot-tok" {
-		t.Fatalf("expected GITHUB_COPILOT_TOKEN to win, got %q", got)
+	if got != "github-tok" {
+		t.Fatalf("expected GITHUB_TOKEN to win, got %q", got)
 	}
 }
 
 func TestEnvTokenResolverFallbackToGitHubToken(t *testing.T) {
-	t.Setenv("GITHUB_COPILOT_TOKEN", "")
-	t.Setenv("GITHUB_TOKEN", "fallback-tok")
-	t.Setenv("GH_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("GH_TOKEN", "fallback-tok")
 
 	got, err := EnvTokenResolver(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != "fallback-tok" {
-		t.Fatalf("expected GITHUB_TOKEN fallback, got %q", got)
+		t.Fatalf("expected GH_TOKEN fallback, got %q", got)
 	}
 }
 
 func TestEnvTokenResolverNoToken(t *testing.T) {
-	t.Setenv("GITHUB_COPILOT_TOKEN", "")
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("GH_TOKEN", "")
 
@@ -185,7 +182,7 @@ func TestStoreTokenResolverUsesStore(t *testing.T) {
 	store := auth.NewStore()
 	store.Set(ProviderName, auth.Credential{Token: "store-token", Source: auth.SourceDeviceFlow})
 
-	t.Setenv("GITHUB_COPILOT_TOKEN", "env-token")
+	t.Setenv("GITHUB_TOKEN", "env-token")
 
 	resolver := StoreTokenResolver(store)
 	got, err := resolver(context.Background())
@@ -200,7 +197,7 @@ func TestStoreTokenResolverUsesStore(t *testing.T) {
 func TestStoreTokenResolverFallsBackToEnv(t *testing.T) {
 	store := auth.NewStore() // empty store
 
-	t.Setenv("GITHUB_COPILOT_TOKEN", "env-token")
+	t.Setenv("GITHUB_TOKEN", "env-token")
 
 	resolver := StoreTokenResolver(store)
 	got, err := resolver(context.Background())

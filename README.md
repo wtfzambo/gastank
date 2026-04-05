@@ -13,10 +13,10 @@ This first slice keeps things intentionally small:
 
 The Copilot adapter calls `GET https://api.github.com/copilot_internal/user` and normalizes the response into a shared `UsageReport` shape.
 
-Auth resolution order (env vars only — no `gh` CLI dependency):
-1. `GITHUB_COPILOT_TOKEN` (highest priority)
-2. `GITHUB_TOKEN`
-3. `GH_TOKEN`
+Auth resolution order:
+1. Saved credentials (stored by in-app device-flow login)
+2. `GITHUB_TOKEN` env var
+3. `GH_TOKEN` env var
 
 For interactive use, the app exposes a GitHub device-flow login that stores the resulting credential at `<os.UserConfigDir>/ingo/credentials.json`.
 
@@ -25,8 +25,8 @@ If the token does not have the right access, or the account is not Copilot-enabl
 ## Run the CLI
 
 ```bash
-export GITHUB_COPILOT_TOKEN=YOUR_TOKEN
-# or: GITHUB_TOKEN / GH_TOKEN are also accepted
+export GITHUB_TOKEN=YOUR_GITHUB_TOKEN
+# or: GH_TOKEN is also accepted
 
 go run ./cmd/ingo usage github-copilot
 ```

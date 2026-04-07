@@ -6,7 +6,7 @@ import {
   PollGitHubLogin,
   LogOut,
   GetCopilotUsage,
-} from '../wailsjs/go/main/App';
+} from '../bindings/ingo/app';
 
 // ---- Type definitions (mirroring Go structs) ----
 

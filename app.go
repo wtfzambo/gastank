@@ -9,6 +9,8 @@ import (
 	githubauth "ingo/internal/auth/github"
 	"ingo/internal/providers/copilot"
 	"ingo/internal/usage"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // DeviceFlowState is returned to the frontend when starting GitHub login.
@@ -27,7 +29,8 @@ type AuthStatus struct {
 	Source        string `json:"source,omitempty"`
 }
 
-// App struct
+// App is the Wails v3 service. It exposes auth and usage methods to the
+// frontend and implements ServiceStartup so it receives the app context.
 type App struct {
 	ctx          context.Context
 	credStore    *auth.Store
@@ -36,7 +39,7 @@ type App struct {
 	deviceFlow   *githubauth.DeviceFlow
 }
 
-// NewApp creates a new App application struct.
+// NewApp creates a new App service instance, loading credentials from disk.
 func NewApp() *App {
 	store := auth.NewStore()
 
@@ -59,10 +62,12 @@ func NewApp() *App {
 	}
 }
 
-// startup is called when the app starts. The context is saved so we can call
-// runtime methods.
-func (a *App) startup(ctx context.Context) {
+// ServiceStartup implements application.ServiceStartup.
+// Called by Wails v3 during app startup; stores the context for use in
+// background operations (device-flow polling, usage fetches).
+func (a *App) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	a.ctx = ctx
+	return nil
 }
 
 // save persists the credential store to disk. Failures are logged but not

@@ -7,28 +7,8 @@ import {
   LogOut,
   GetCopilotUsage,
 } from '../bindings/ingo/app';
-
-// ---- Type definitions (mirroring Go structs) ----
-
-interface AuthStatus {
-  authenticated: boolean;
-  source?: string;
-}
-
-interface DeviceFlowState {
-  deviceCode: string;
-  userCode: string;
-  verificationURI: string;
-  expiresIn: number;
-  interval: number;
-}
-
-interface UsageReport {
-  provider: string;
-  retrievedAt: string;
-  metrics: Record<string, number>;
-  metadata?: Record<string, string>;
-}
+import { AuthStatus, DeviceFlowState } from '../bindings/ingo/models';
+import { UsageReport } from '../bindings/ingo/internal/usage/models';
 
 // ---- Helpers ----
 
@@ -79,6 +59,10 @@ function LoginScreen({
     setError(null);
     try {
       const state = await StartGitHubLogin();
+      if (!state) {
+        setError('Failed to start login flow');
+        return;
+      }
       setFlow(state);
       beginPolling(state);
     } catch (e: unknown) {

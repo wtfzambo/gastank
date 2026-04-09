@@ -1,0 +1,12 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=/usr/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+revision=ubuntu-24.04-shim
+
+Name: JavaScriptCoreGTK+
+Description: Compatibility shim mapping Wails' 4.0 lookup to Ubuntu 24.04's 4.1 package
+Version: 2.50.4
+Requires: glib-2.0 gobject-2.0
+Libs: -L${libdir} -ljavascriptcoregtk-4.1
+Cflags: -I${includedir}/webkitgtk-4.1

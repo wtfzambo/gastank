@@ -129,6 +129,17 @@ body {
   color: var(--text);
   text-decoration: underline;
   text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.device-instruction a:hover {
+  color: var(--accent);
+}
+
+.device-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .device-code {
@@ -137,6 +148,26 @@ body {
   letter-spacing: 0.2em;
   color: var(--text);
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+.copy-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.3rem;
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.copy-btn:hover {
+  border-color: var(--text);
+  color: var(--text);
 }
 
 .waiting-text {

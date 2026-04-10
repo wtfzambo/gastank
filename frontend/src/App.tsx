@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Browser } from '@wailsio/runtime';
 import './App.css';
 import {
   GetAuthStatus,
@@ -6,9 +7,9 @@ import {
   PollGitHubLogin,
   LogOut,
   GetCopilotUsage,
-} from '../bindings/ingo/app';
-import { AuthStatus, DeviceFlowState } from '../bindings/ingo/models';
-import { UsageReport } from '../bindings/ingo/internal/usage/models';
+} from '../bindings/gastank/app';
+import { AuthStatus, DeviceFlowState } from '../bindings/gastank/models';
+import { UsageReport } from '../bindings/gastank/internal/usage/models';
 
 // ---- Helpers ----
 
@@ -26,6 +27,40 @@ function MetricRow({ label, value }: { label: string; value: string }) {
     <div className="metric-row">
       <span className="metric-label">{label}</span>
       <span className="metric-value">{value}</span>
+    </div>
+  );
+}
+
+function CopyCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="device-code-row">
+      <span className="device-code">{code}</span>
+      <button
+        className="copy-btn"
+        onClick={handleCopy}
+        title="Copy code"
+        aria-label="Copy code to clipboard"
+      >
+        {copied ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+        )}
+      </button>
     </div>
   );
 }
@@ -116,12 +151,19 @@ function LoginScreen({
         <div className="device-code-box">
           <p className="device-instruction">
             Open{' '}
-            <a href={flow.verificationURI} target="_blank" rel="noreferrer">
+            <a
+              href="#"
+              className="verification-link"
+              onClick={(e) => {
+                e.preventDefault();
+                Browser.OpenURL(flow.verificationURI);
+              }}
+            >
               {flow.verificationURI}
             </a>{' '}
             and enter this code:
           </p>
-          <div className="device-code">{flow.userCode}</div>
+          <CopyCode code={flow.userCode} />
           {polling && <p className="waiting-text">Waiting for approval…</p>}
         </div>
       )}
@@ -266,7 +308,7 @@ function App() {
   return (
     <div id="App">
       <header className="app-header">
-        <h1>ingo</h1>
+        <h1>gastank</h1>
         <p className="app-subtitle">AI token usage monitor</p>
       </header>
 

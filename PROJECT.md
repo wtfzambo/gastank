@@ -1,4 +1,4 @@
-# Ingo — AI Consumption Tracking Tray App
+# Gastank — AI Consumption Tracking Tray App
 
 ## What
 
@@ -38,5 +38,5 @@ Donna → Lobster → Felicity → Pi (via acpx) → OpenSpec → GitHub repo
 
 ## Repo
 
-- GitHub: `donnaknows/ingo` (private)
-- Local: `~/repos/ingo/`
+- GitHub: `donnaknows/gastank` (private)
+- Local: `~/mystuff/projects/gastank/`

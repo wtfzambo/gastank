@@ -86,7 +86,7 @@ func (s *Store) Load(path string) error {
 	var persisted map[string]Credential
 	if err := json.Unmarshal(data, &persisted); err != nil {
 		// Corrupt file — log and treat as empty rather than hard-failing.
-		log.Printf("ingo: credentials file %s is corrupt and will be ignored: %v", path, err)
+		log.Printf("gastank: credentials file %s is corrupt and will be ignored: %v", path, err)
 		return nil
 	}
 
@@ -131,11 +131,11 @@ func (s *Store) Save(path string) error {
 }
 
 // DefaultCredentialsPath returns the platform-appropriate path for the
-// credentials file: <os.UserConfigDir>/ingo/credentials.json.
+// credentials file: <os.UserConfigDir>/gastank/credentials.json.
 func DefaultCredentialsPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("locate user config directory: %w", err)
 	}
-	return filepath.Join(dir, "ingo", "credentials.json"), nil
+	return filepath.Join(dir, "gastank", "credentials.json"), nil
 }

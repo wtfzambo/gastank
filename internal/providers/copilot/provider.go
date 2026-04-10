@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"ingo/internal/auth"
-	"ingo/internal/usage"
+	"gastank/internal/auth"
+	"gastank/internal/usage"
 )
 
 const (

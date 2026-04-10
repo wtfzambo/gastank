@@ -5,10 +5,10 @@ import (
 	"errors"
 	"log"
 
-	"ingo/internal/auth"
-	githubauth "ingo/internal/auth/github"
-	"ingo/internal/providers/copilot"
-	"ingo/internal/usage"
+	"gastank/internal/auth"
+	githubauth "gastank/internal/auth/github"
+	"gastank/internal/providers/copilot"
+	"gastank/internal/usage"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -45,10 +45,10 @@ func NewApp() *App {
 
 	credsPath, err := auth.DefaultCredentialsPath()
 	if err != nil {
-		log.Printf("ingo: could not resolve credentials path: %v", err)
+		log.Printf("gastank: could not resolve credentials path: %v", err)
 	} else {
 		if err := store.Load(credsPath); err != nil {
-			log.Printf("ingo: could not load credentials: %v", err)
+			log.Printf("gastank: could not load credentials: %v", err)
 		}
 	}
 
@@ -77,7 +77,7 @@ func (a *App) save() {
 		return
 	}
 	if err := a.credStore.Save(a.credsPath); err != nil {
-		log.Printf("ingo: could not save credentials: %v", err)
+		log.Printf("gastank: could not save credentials: %v", err)
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
-	"github.com/wailsapp/wails/v3/pkg/icons"
 )
 
 //go:embed all:frontend/dist
@@ -17,7 +16,7 @@ func main() {
 	app := NewApp()
 
 	wailsApp := application.New(application.Options{
-		Name:        "Ingo",
+		Name:        "Gastank",
 		Description: "AI token usage monitor",
 		Services: []application.Service{
 			application.NewService(app),
@@ -34,13 +33,15 @@ func main() {
 
 	// Tray window — starts hidden, frameless, always on top.
 	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:         "Ingo",
-		Width:         400,
-		Height:        600,
-		Hidden:        true,
-		Frameless:     true,
-		AlwaysOnTop:   true,
-		DisableResize: true,
+		Title:           "Gastank",
+		Width:           360,
+		Height:          420,
+		Hidden:          true,
+		Frameless:       true,
+		AlwaysOnTop:     true,
+		DisableResize:   true,
+		HideOnFocusLost: true,
+		HideOnEscape:    true,
 		Windows: application.WindowsWindow{
 			HiddenOnTaskbar: true,
 		},
@@ -56,12 +57,12 @@ func main() {
 	tray := wailsApp.SystemTray.New()
 
 	if runtime.GOOS == "darwin" {
-		tray.SetTemplateIcon(icons.SystrayMacTemplate)
+		tray.SetTemplateIcon(trayIconBytes())
 	} else {
 		tray.SetIcon(trayIconBytes())
 	}
 
-	tray.SetTooltip("Ingo — AI usage monitor")
+	tray.SetTooltip("Gastank — AI usage monitor")
 	tray.AttachWindow(window).WindowOffset(5)
 
 	menu := wailsApp.Menu.New()
@@ -72,7 +73,7 @@ func main() {
 		tray.HideWindow()
 	})
 	menu.AddSeparator()
-	menu.Add("Quit Ingo").OnClick(func(_ *application.Context) {
+	menu.Add("Quit Gastank").OnClick(func(_ *application.Context) {
 		wailsApp.Quit()
 	})
 	tray.SetMenu(menu)

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"ingo/internal/auth"
+	"gastank/internal/auth"
 )
 
 // sampleResponse mirrors the /copilot_internal/user shape for tests.

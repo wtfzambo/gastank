@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"ingo/internal/auth"
+	"gastank/internal/auth"
 )
 
 func TestStartDeviceFlow(t *testing.T) {

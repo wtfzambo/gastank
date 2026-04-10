@@ -6,8 +6,8 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "Felicity"
-  productName: "Ingo"
-  productIdentifier: "com.felicity.ingo"
+  productName: "Gastank"
+  productIdentifier: "com.felicity.gastank"
   description: "AI token usage monitor"
   copyright: "(c) 2025, Felicity"
   comments: "AI token usage monitor"

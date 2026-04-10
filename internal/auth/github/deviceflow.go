@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"ingo/internal/auth"
+	"gastank/internal/auth"
 )
 
 // GitHub's public OAuth app for Copilot / VS Code.

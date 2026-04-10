@@ -1,4 +1,4 @@
-module ingo
+module gastank
 
 go 1.25
 

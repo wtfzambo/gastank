@@ -95,6 +95,21 @@ tasks:
 
   build:universal:
     summary: Builds darwin universal binary (arm64 + amd64)
+    vars:
+      BUILD_FLAGS: '-tags production -trimpath -buildvcs=false -ldflags="-w -s{{if .VERSION}} -X main.Version={{.VERSION}}{{end}}"'
+    cmds:
+      # Build frontend + bindings ONCE before parallel arch compilation.
+      # Both arch builds share the same frontend output; running them in
+      # parallel causes a race where generate:bindings -clean=true wipes
+      # the bindings dir while the other arch's npm build reads from it.
+      - task: common:build:frontend
+        vars:
+          BUILD_FLAGS: '{{.BUILD_FLAGS}}'
+      - task: build:universal:compile
+
+  build:universal:compile:
+    summary: Compiles both architectures in parallel and creates universal binary
+    internal: true
     deps:
       - task: build
         vars:

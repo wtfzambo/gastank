@@ -113,7 +113,10 @@ jobs:
 
       - name: Install NSIS
         shell: pwsh
-        run: choco install nsis --no-progress -y
+        run: |
+          choco install nsis --no-progress -y
+          $nsisPath = "${env:ProgramFiles(x86)}\NSIS"
+          Add-Content -Path $env:GITHUB_PATH -Value $nsisPath
 
       - name: Stamp release version
         shell: bash
@@ -166,12 +169,6 @@ jobs:
       - name: Set up Task
         uses: go-task/setup-task@v2
 
-      - name: Install Wails CLI
-        shell: bash
-        run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
@@ -179,6 +176,12 @@ jobs:
           sudo mkdir -p /usr/local/lib/pkgconfig
           sudo cp build/linux/pkgconfig/*.pc /usr/local/lib/pkgconfig/
           echo "PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig" >> "$GITHUB_ENV"
+
+      - name: Install Wails CLI
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Stamp release version
         shell: bash

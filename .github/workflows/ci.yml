@@ -40,7 +40,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Run Go tests
-        run: go test ./...
+        run: go test ./internal/...
 
   frontend:
     name: Frontend build

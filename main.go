@@ -2,7 +2,9 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
+	"os"
 	"runtime"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -13,6 +15,14 @@ import (
 var assets embed.FS
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "--version", "version":
+			fmt.Println(Version)
+			return
+		}
+	}
+
 	app := NewApp()
 
 	wailsApp := application.New(application.Options{

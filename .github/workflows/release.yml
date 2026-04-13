@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  WAILS_VERSION: v3.0.0-alpha.74
+
+jobs:
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Task
+        uses: arduino/setup-task@v2
+
+      - name: Install Wails CLI
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Stamp release version
+        shell: bash
+        run: ./scripts/set-release-version.sh "${GITHUB_REF_NAME}"
+
+      - name: Build universal app bundle
+        shell: bash
+        run: wails3 task darwin:package:universal VERSION=${GITHUB_REF_NAME#v}
+
+      - name: Archive app bundle
+        shell: bash
+        run: ditto -c -k --sequesterRsrc --keepParent "bin/gastank.app" "bin/gastank-macos-universal.zip"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: |
+            bin/gastank.app
+            bin/gastank-macos-universal.zip
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Task
+        uses: arduino/setup-task@v2
+
+      - name: Install Wails CLI
+        shell: pwsh
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${env:WAILS_VERSION}
+          Add-Content -Path $env:GITHUB_PATH -Value "$(go env GOPATH)\bin"
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis --no-progress -y
+
+      - name: Stamp release version
+        shell: bash
+        run: ./scripts/set-release-version.sh "${GITHUB_REF_NAME}"
+
+      - name: Build installer
+        shell: bash
+        run: wails3 package GOOS=windows VERSION=${GITHUB_REF_NAME#v}
+
+      - name: Normalize installer name
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path bin -Filter "*-installer.exe" | Select-Object -First 1
+          if (-not $installer) {
+            throw "Windows installer not found in bin/"
+          }
+          Move-Item $installer.FullName "bin/gastank-windows-amd64-installer.exe" -Force
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: |
+            bin/gastank.exe
+            bin/gastank-windows-amd64-installer.exe
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Task
+        uses: arduino/setup-task@v2
+
+      - name: Install Wails CLI
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev rpm
+          sudo mkdir -p /usr/local/lib/pkgconfig
+          sudo cp build/linux/pkgconfig/*.pc /usr/local/lib/pkgconfig/
+          echo "PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig" >> "$GITHUB_ENV"
+
+      - name: Stamp release version
+        shell: bash
+        run: ./scripts/set-release-version.sh "${GITHUB_REF_NAME}"
+
+      - name: Build Linux packages
+        shell: bash
+        run: wails3 package GOOS=linux VERSION=${GITHUB_REF_NAME#v}
+
+      - name: Normalize Linux binary name
+        run: mv bin/gastank bin/gastank-linux-amd64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: |
+            bin/gastank-linux-amd64
+            bin/*.AppImage
+            bin/*.deb
+            bin/*.rpm
+            bin/*.pkg.tar.zst
+
+  publish:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs:
+      - build-macos
+      - build-windows
+      - build-linux
+    steps:
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/release-macos/**
+            dist/release-windows/**
+            dist/release-linux/**

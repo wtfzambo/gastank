@@ -13,7 +13,17 @@ import (
 	"gastank/internal/usage"
 )
 
+var version = "dev"
+
 func main() {
+	if len(os.Args) >= 2 {
+		switch os.Args[1] {
+		case "--version", "version":
+			fmt.Println(version)
+			return
+		}
+	}
+
 	store := auth.NewStore()
 
 	credsPath, err := auth.DefaultCredentialsPath()

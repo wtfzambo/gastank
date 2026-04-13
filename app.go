@@ -155,6 +155,11 @@ func (a *App) GetCopilotUsage() (*usage.UsageReport, error) {
 	return a.GetUsage(copilot.ProviderName)
 }
 
+// GetVersion returns the build version for the current app binary.
+func (a *App) GetVersion() string {
+	return Version
+}
+
 // ListProviders returns the provider adapters currently wired into the app.
 func (a *App) ListProviders() []string {
 	return a.usageService.Providers()

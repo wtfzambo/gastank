@@ -49,6 +49,16 @@ task dev
 task build
 ```
 
+## Install
+
+Latest release installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/donnaknows/gastank/main/scripts/install.sh | bash
+```
+
+Release artifacts are published through GitHub Releases for macOS, Windows, and Linux.
+
 ## Package (macOS .app)
 
 ```bash

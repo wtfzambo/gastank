@@ -52,6 +52,14 @@ export function GetUsage(providerName) {
 }
 
 /**
+ * GetVersion returns the build version for the current app binary.
+ * @returns {$CancellablePromise<string>}
+ */
+export function GetVersion() {
+    return $Call.ByID(1049863377);
+}
+
+/**
  * ListProviders returns the provider adapters currently wired into the app.
  * @returns {$CancellablePromise<string[]>}
  */

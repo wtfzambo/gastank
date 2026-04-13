@@ -1,0 +1,18 @@
+name: gastank
+arch: amd64
+platform: linux
+version: 0.0.1
+section: utils
+priority: optional
+maintainer: Felicity
+description: AI token usage monitor
+vendor: Felicity
+homepage: https://github.com/donnaknows/gastank
+license: Proprietary
+contents:
+  - src: ./bin/gastank
+    dst: /usr/bin/gastank
+  - src: ./build/linux/gastank.desktop
+    dst: /usr/share/applications/gastank.desktop
+  - src: ./build/appicon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/gastank.png

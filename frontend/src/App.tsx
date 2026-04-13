@@ -1,34 +1,45 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { Browser } from '@wailsio/runtime';
-import './App.css';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   GetAuthStatus,
-  StartGitHubLogin,
-  PollGitHubLogin,
-  LogOut,
   GetCopilotUsage,
+  LogOut,
+  PollGitHubLogin,
+  StartGitHubLogin,
 } from '../bindings/gastank/app';
-import { AuthStatus, DeviceFlowState } from '../bindings/gastank/models';
 import { UsageReport } from '../bindings/gastank/internal/usage/models';
+import { AuthStatus, DeviceFlowState } from '../bindings/gastank/models';
+import './App.css';
 
 // ---- Helpers ----
 
+const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
 function pct(value: number | undefined): string {
   if (value === undefined) return '—';
-  return `${Math.round(value)}%`;
+  return `${value}%`;
+}
+
+function formatRetrievedAt(value: string | undefined): string {
+  if (!value) return '—';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  return date.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function quotaValue(metrics: UsageReport['metrics'] | undefined, prefix: string): string {
+  if (!metrics) return '—';
+  if (metrics[`${prefix}_unlimited`] === 1) return 'Unlimited';
+  return pct(metrics[`${prefix}_percent_remaining`]);
 }
 
 function isAuthError(msg: string): boolean {
   return /401|403|unauthorized|forbidden|token.*invalid|invalid.*token|not authenticated|log.*in/i.test(msg);
-}
-
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric-row">
-      <span className="metric-label">{label}</span>
-      <span className="metric-value">{value}</span>
-    </div>
-  );
 }
 
 function CopyCode({ code }: { code: string }) {
@@ -51,11 +62,11 @@ function CopyCode({ code }: { code: string }) {
         aria-label="Copy code to clipboard"
       >
         {copied ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
@@ -80,7 +91,6 @@ function LoginScreen({
   const [polling, setPolling] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Clean up polling timer on unmount.
   useEffect(() => {
     return () => {
       if (timerRef.current !== null) {
@@ -109,7 +119,6 @@ function LoginScreen({
 
   function beginPolling(state: DeviceFlowState) {
     setPolling(true);
-    // interval from GitHub + a small buffer (ms)
     const intervalMs = Math.max((state.interval + 1) * 1000, 6000);
 
     timerRef.current = setInterval(async () => {
@@ -132,151 +141,194 @@ function LoginScreen({
   }
 
   return (
-    <div className="login-screen">
-      <h2 className="login-title">Connect GitHub Copilot</h2>
+    <main className="login-screen">
+      <div className="login-header">
+        <h2>Connect GitHub Copilot</h2>
+        <p>Sign in to keep track of your Copilot usage.</p>
+      </div>
+
       {sessionExpired && (
-        <p className="session-expired">Session expired — please sign in again.</p>
+        <div className="error-text">
+          <p>Session expired</p>
+          <span>Sign in again to continue tracking usage.</span>
+        </div>
       )}
-      <p className="login-body">
-        Sign in with your GitHub account to view Copilot usage.
-      </p>
 
       {!flow && (
-        <button className="primary-btn" onClick={startLogin} disabled={starting}>
+        <button className="btn btn-outline" onClick={startLogin} disabled={starting}>
           {starting ? 'Starting…' : 'Sign in with GitHub'}
         </button>
       )}
 
       {flow && (
-        <div className="device-code-box">
-          <p className="device-instruction">
-            Open{' '}
+        <div className="login-flow-container">
+          <div className="login-instructions">
+            <span>1. Open</span>
             <a
               href="#"
-              className="verification-link"
+              className="login-link"
               onClick={(e) => {
                 e.preventDefault();
                 Browser.OpenURL(flow.verificationURI);
               }}
             >
               {flow.verificationURI}
-            </a>{' '}
-            and enter this code:
-          </p>
+            </a>
+          </div>
+          <div className="login-instructions">
+            <span>2. Enter this code:</span>
+          </div>
+
           <CopyCode code={flow.userCode} />
-          {polling && <p className="waiting-text">Waiting for approval…</p>}
+
+          {polling && (
+            <div className="login-polling">
+              <svg className="spinning" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Waiting for approval…</span>
+            </div>
+          )}
         </div>
       )}
 
-      {error && <p className="login-error">{error}</p>}
-    </div>
+      {error && (
+        <div className="error-text">
+          <p>Login failed</p>
+          <span>{error}</span>
+        </div>
+      )}
+    </main>
   );
 }
 
 // ---- Usage screen ----
 
 function UsageScreen({
-  onLogOut,
+  refreshSignal,
+  onRefreshingChange,
   onAuthError,
 }: {
-  onLogOut: () => void;
+  refreshSignal: number;
+  onRefreshingChange: (isRefreshing: boolean) => void;
   onAuthError: () => void;
 }) {
   const [report, setReport] = useState<UsageReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const refreshInFlightRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    if (refreshInFlightRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    onRefreshingChange(true);
     setError(null);
+
     try {
       const r = await GetCopilotUsage();
       setReport(r);
     } catch (e: unknown) {
       const msg = String(e);
       if (isAuthError(msg)) {
-        // Token invalid/expired — clear and send back to login.
         await LogOut();
         onAuthError();
         return;
       }
       setError(msg);
     } finally {
-      setLoading(false);
+      refreshInFlightRef.current = false;
+      onRefreshingChange(false);
     }
-  }, [onAuthError]);
+  }, [onAuthError, onRefreshingChange]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh, refreshSignal]);
 
   const m = report?.metrics ?? {};
   const meta = report?.metadata ?? {};
+  const hasReport = report !== null;
+  const hasStaleData = hasReport && error !== null;
+  const showEmptyError = error !== null && !hasReport;
+
+  const primaryValue = quotaValue(m, 'premium');
+  const chatValue = quotaValue(m, 'chat');
+  const completionsValue = quotaValue(m, 'completions');
 
   return (
-    <>
-      <main className="usage-card">
-        {loading && <p className="status-text">Loading…</p>}
+    <main className="usage-screen">
+      {!hasReport && !error && <p style={{opacity: 0.6}}>Loading…</p>}
 
-        {!loading && error && (
-          <div className="error-box">
-            <p className="error-title">Could not fetch usage</p>
-            <p className="error-detail">{error}</p>
-          </div>
-        )}
+      {showEmptyError && (
+        <div className="error-text">
+          <p>Could not fetch usage</p>
+          <span>{error}</span>
+        </div>
+      )}
 
-        {!loading && report && !error && (
-          <>
-            <div className="plan-row">
-              <span className="plan-badge">{meta.plan ?? 'GitHub Copilot'}</span>
-              {meta.quota_reset_date && (
-                <span className="reset-date">Resets {meta.quota_reset_date}</span>
-              )}
-            </div>
-
-            <div className="metrics">
-              <MetricRow
-                label="Premium interactions remaining"
-                value={m['premium_unlimited'] === 1 ? 'Unlimited' : pct(m['premium_percent_remaining'])}
-              />
-            </div>
-
-            <button
-              type="button"
-              className="details-toggle"
-              onClick={() => setShowDetails(prev => !prev)}
-              aria-expanded={showDetails}
-              aria-controls="details-metrics"
-            >
-              {showDetails ? 'Hide details ▴' : 'Show details ▾'}
-            </button>
-
-            {showDetails && (
-              <div id="details-metrics" className="metrics details-metrics">
-                <MetricRow
-                  label="Chat remaining"
-                  value={m['chat_unlimited'] === 1 ? 'Unlimited' : pct(m['chat_percent_remaining'])}
-                />
-                <MetricRow
-                  label="Completions remaining"
-                  value={m['completions_unlimited'] === 1 ? 'Unlimited' : pct(m['completions_percent_remaining'])}
-                />
+      {hasReport && (
+        <div className="provider-list">
+          <div className="provider-item">
+            {hasStaleData && (
+              <div className="error-text">
+                <p>Last refresh failed</p>
+                <span>Showing the most recent cached snapshot.</span>
               </div>
             )}
 
-            <p className="retrieved-at">
-              Updated {new Date(report.retrievedAt).toLocaleTimeString()}
-            </p>
-          </>
-        )}
-      </main>
+            <div className="provider-header">
+              <h2 className="provider-name">GitHub Copilot</h2>
+              <span className="provider-badge">{meta.plan ?? 'Subscription'}</span>
+            </div>
 
-      <div className="action-row">
-        <button className="refresh-btn" onClick={refresh} disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
-        <button className="logout-btn" onClick={onLogOut}>Log out</button>
-      </div>
-    </>
+            <div className="primary-metric">
+              <span className="primary-metric-label">Premium interactions left</span>
+              <span className="primary-metric-value">{primaryValue}</span>
+            </div>
+
+            <button
+              className={`details-toggle ${showDetails ? 'open' : ''}`}
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              <span>{showDetails ? 'Hide details' : 'Show details'}</span>
+            </button>
+
+            {showDetails && (
+              <div className="details-section">
+                <div className="metric-row">
+                  <span className="metric-label">Chat</span>
+                  <span className="metric-value">{chatValue}</span>
+                </div>
+                <div className="metric-row">
+                  <span className="metric-label">Completions</span>
+                  <span className="metric-value">{completionsValue}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="provider-footer">
+              <div className="meta-info">
+                <span>Refresh: {formatRetrievedAt(report.retrievedAt)}</span>
+                {meta.quota_reset_date && (
+                  <>
+                    <span className="meta-separator">•</span>
+                    <span>Reset: {meta.quota_reset_date}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
 
@@ -287,6 +339,8 @@ type Screen = 'loading' | 'login' | 'usage';
 function App() {
   const [screen, setScreen] = useState<Screen>('loading');
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   useEffect(() => {
     GetAuthStatus().then((status: AuthStatus) => {
@@ -294,33 +348,82 @@ function App() {
     });
   }, []);
 
-  function handleLogOut() {
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (screen === 'usage') {
+        triggerRefresh();
+      }
+    }, AUTO_REFRESH_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [screen]);
+
+  const handleLogOut = useCallback(() => {
     LogOut();
     setSessionExpired(false);
     setScreen('login');
-  }
+  }, []);
 
-  function handleAuthError() {
+  const handleAuthError = useCallback(() => {
     setSessionExpired(true);
     setScreen('login');
-  }
+  }, []);
+
+  const triggerRefresh = useCallback(() => {
+    setRefreshSignal((prev) => prev + 1);
+  }, []);
 
   return (
     <div id="App">
       <header className="app-header">
-        <h1>gastank</h1>
-        <p className="app-subtitle">AI token usage monitor</p>
+        <div className="header-brand">
+          <div className="brand-mark" aria-hidden="true" />
+          <div>
+            <h1>gastank</h1>
+            <p className="app-subtitle">AI usage monitor</p>
+          </div>
+        </div>
       </header>
 
-      {screen === 'loading' && <p className="status-text">Loading…</p>}
-      {screen === 'login' && (
-        <LoginScreen
-          onLoggedIn={() => { setSessionExpired(false); setScreen('usage'); }}
-          sessionExpired={sessionExpired}
-        />
-      )}
+      <div className="screen-container">
+        {screen === 'loading' && <p style={{opacity: 0.6}}>Loading…</p>}
+
+        {screen === 'login' && (
+          <LoginScreen
+            onLoggedIn={() => { setSessionExpired(false); setScreen('usage'); }}
+            sessionExpired={sessionExpired}
+          />
+        )}
+
+        {screen === 'usage' && (
+          <UsageScreen
+            refreshSignal={refreshSignal}
+            onRefreshingChange={setIsRefreshing}
+            onAuthError={handleAuthError}
+          />
+        )}
+      </div>
+
       {screen === 'usage' && (
-        <UsageScreen onLogOut={handleLogOut} onAuthError={handleAuthError} />
+        <footer className="app-footer">
+          <button
+            className="footer-btn refresh-btn"
+            onClick={triggerRefresh}
+            disabled={isRefreshing}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isRefreshing ? "spinning" : ""}>
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Refresh all
+          </button>
+          <button
+            className="footer-btn"
+            onClick={handleLogOut}
+          >
+            Log out
+          </button>
+        </footer>
       )}
     </div>
   );

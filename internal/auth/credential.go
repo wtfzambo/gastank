@@ -17,7 +17,6 @@ type Source string
 
 const (
 	SourceDeviceFlow Source = "github-device-flow"
-	SourceEnvVar     Source = "env-var"
 )
 
 // Credential holds a token and its provenance.

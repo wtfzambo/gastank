@@ -11,8 +11,6 @@ type Provider interface {
 // UsageReport is the normalized payload returned by provider adapters.
 type UsageReport struct {
 	Provider    string             `json:"provider"`
-	PeriodStart string             `json:"periodStart,omitempty"`
-	PeriodEnd   string             `json:"periodEnd,omitempty"`
 	RetrievedAt string             `json:"retrievedAt"`
 	Metrics     map[string]float64 `json:"metrics"`
 	Metadata    map[string]string  `json:"metadata,omitempty"`

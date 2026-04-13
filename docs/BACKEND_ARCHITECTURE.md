@@ -8,11 +8,10 @@ Gastank is a system-tray desktop app (+ optional CLI) that monitors AI provider 
 
 ```
 gastank/
-├── main.go                     # Wails app entry point (tray window + system tray)
+├── main.go                     # Entry point: tray app (default) + CLI subcommands
 ├── app.go                      # Wails service: auth + usage methods exposed to frontend
 ├── version.go                  # Build-time version variable
 ├── tray.go                     # Embedded tray icon (PNG → []byte)
-├── cmd/gastank/main.go         # Standalone CLI binary (no GUI)
 ├── internal/
 │   ├── auth/
 │   │   ├── credential.go       # Credential type + thread-safe Store (load/save JSON)
@@ -27,14 +26,23 @@ gastank/
 ├── frontend/                   # React + Vite (compiled into Go binary via embed)
 ├── build/                      # Platform-specific Taskfiles + packaging configs
 ├── scripts/                    # Release helper scripts
-└── .github/workflows/          # CI + Release workflows
+└── .github/workflows/          # CI + Release + Release-Please workflows
 ```
 
 ## How It Works
 
 ### 1. Application Lifecycle (`main.go`)
 
-The app starts as a **system tray application** — no dock icon, no taskbar entry:
+The binary serves double duty — **tray app** (default, no args) and **CLI** (with subcommands):
+
+```
+gastank                        → start tray app (default)
+gastank usage [provider]       → fetch usage data as JSON
+gastank --version              → print version
+gastank --help                 → show help
+```
+
+When launched without arguments, it starts as a **system tray application** — no dock icon, no taskbar entry:
 
 - Creates a frameless, always-on-top 360x420 window (hidden by default)
 - Attaches the window to a system tray icon (left-click toggles, right-click shows menu)
@@ -113,23 +121,18 @@ Provider interface {
 }
 ```
 
-### 5. CLI Binary (`cmd/gastank/main.go`)
+### 5. CLI Mode (built into the same binary)
 
-Separate binary, no GUI dependency. Shares the same `internal/` packages.
-
-```bash
-gastank usage                  # fetch copilot usage, print JSON
-gastank usage github-copilot   # explicit provider name
-gastank --version              # print version
-```
+The `usage` subcommand runs without starting the GUI. It creates its own auth store and usage service, fetches from the Copilot provider, and prints JSON to stdout.
 
 Uses the same credential store file as the tray app — login once via the GUI, then the CLI can read the saved token.
 
+Note: on Windows, production builds use `-H windowsgui` which hides the console window. CLI output may not be visible when running from cmd.exe in a GUI-built binary. This is a known Go/Windows limitation.
+
 ### 6. Version Injection
 
-- `version.go` declares `var Version = "dev"` (root package, GUI binary)
-- `cmd/gastank/main.go` declares `var version = "dev"` (CLI binary)
-- Both are overridden at build time via `-ldflags "-X main.Version=<tag>"`
+- `version.go` declares `var Version = "dev"`
+- Overridden at build time via `-ldflags "-X main.Version=<tag>"`
 - Platform Taskfiles include this flag when `VERSION` var is set
 - `scripts/set-release-version.sh` separately stamps `build/config.yml` and `build/linux/nfpm/nfpm.yaml` (for NSIS/nfpm package metadata)
 
@@ -147,9 +150,11 @@ go run . --version  # check version
 
 Runs on push/PR to main: `go test ./...` + `npm run build` (frontend).
 
-### Release (`release.yml`)
+### Release (`release.yml` + `release-please.yml`)
 
-Triggered by pushing a `v*` tag. Builds on all three platforms in parallel, then publishes a GitHub Release with auto-generated release notes.
+**Automatic versioning**: `release-please` watches conventional commits on `main` and creates a "Release PR" with the correct semver bump and auto-generated CHANGELOG. When you merge that PR, it creates a `v*` tag.
+
+**Build pipeline**: Triggered by the `v*` tag. Builds on all three platforms in parallel, then publishes a GitHub Release with auto-generated release notes.
 
 **Artifacts produced:**
 - macOS: `gastank-macos-universal.zip` (universal arm64+amd64 .app bundle)
@@ -165,4 +170,4 @@ Triggered by pushing a `v*` tag. Builds on all three platforms in parallel, then
 1. **Undocumented API**: The Copilot usage endpoint is not part of GitHub's public API. It could change or be restricted at any time.
 2. **Borrowed OAuth client ID**: Uses VS Code's client ID. A dedicated OAuth app registration would be more robust.
 3. **No auto-update**: Users must manually re-run the install script or download new releases.
-4. **CLI binary not distributed**: The release workflow only builds the GUI binary. The CLI at `cmd/gastank/` is for local development use.
+4. **Windows CLI caveat**: The `-H windowsgui` ldflag hides console output on Windows. CLI subcommands may need a separate build without that flag for Windows terminal use.

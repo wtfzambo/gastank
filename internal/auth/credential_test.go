@@ -59,7 +59,7 @@ func TestStoreSaveLoad(t *testing.T) {
 
 	store := NewStore()
 	store.Set("github-copilot", Credential{Token: "mytoken", Source: SourceDeviceFlow})
-	store.Set("ollama", Credential{Token: "localtoken", Source: SourceEnvVar})
+	store.Set("ollama", Credential{Token: "localtoken", Source: SourceDeviceFlow})
 
 	if err := store.Save(path); err != nil {
 		t.Fatalf("Save() error: %v", err)
@@ -118,7 +118,7 @@ func TestStoreSaveCreatesDirectory(t *testing.T) {
 	path := filepath.Join(dir, "subdir", "nested", "creds.json")
 
 	store := NewStore()
-	store.Set("k", Credential{Token: "v", Source: SourceEnvVar})
+	store.Set("k", Credential{Token: "v", Source: SourceDeviceFlow})
 
 	if err := store.Save(path); err != nil {
 		t.Fatalf("Save() should create parent dirs, got: %v", err)

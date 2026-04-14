@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/donnaknows/gastank/compare/v0.1.2...v0.1.3) (2026-04-14)
+
+
+### Bug Fixes
+
+* **mac:** use ~/.local/bin for CLI symlink instead of /usr/local/bin ([82565a7](https://github.com/donnaknows/gastank/commit/82565a72b97260a571147b00540c0382a1e1e24a))
+
 ## [0.1.2](https://github.com/donnaknows/gastank/compare/v0.1.1...v0.1.2) (2026-04-14)
 
 

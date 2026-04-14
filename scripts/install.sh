@@ -106,7 +106,13 @@ install_macos() {
   rm -rf /Applications/gastank.app
   mv "$tmp_dir/gastank.app" /Applications/gastank.app
 
+  # Create CLI symlink so `gastank` is available in PATH
+  local link_dir="/usr/local/bin"
+  mkdir -p "$link_dir"
+  ln -sf /Applications/gastank.app/Contents/MacOS/gastank "$link_dir/gastank"
+
   log_success "Installed /Applications/gastank.app"
+  log_success "CLI linked at ${link_dir}/gastank"
 }
 
 install_linux() {

@@ -7,7 +7,7 @@
 <h1 align="center">Gastank</h1>
 
 <h4 align='center'>
-Gastank is a tiny cross-platform desktop menu bar / tray app for tracking AI usage across providers.
+Gastank is a tiny menu bar / tray app for tracking AI usage across providers.
 </h4>
 
 <p align="center">
@@ -48,6 +48,7 @@ Grab the latest release from [GitHub Releases](https://github.com/donnaknows/gas
 Search for "gastank" in your App list and simply start it. It will immediately go in your system tray / menu bar.
 
 <i>Look for this icon: </i><img src="./assets/b&w.svg" width="4%" alt="Gastank tray icon">
+****
 
 ## CLI Usage
 

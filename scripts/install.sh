@@ -107,7 +107,6 @@ install_macos() {
   mv "$tmp_dir/gastank.app" /Applications/gastank.app
 
   log_success "Installed /Applications/gastank.app"
-  log_warning "Unsigned builds may need: xattr -cr /Applications/gastank.app"
 }
 
 install_linux() {

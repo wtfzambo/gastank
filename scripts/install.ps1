@@ -1,9 +1,9 @@
 # Gastank Windows Installer
-# Usage: iwr -useb https://raw.githubusercontent.com/donnaknows/gastank/main/scripts/install.ps1 | iex
+# Usage: iwr -useb https://raw.githubusercontent.com/wtfzambo/gastank/main/scripts/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "donnaknows/gastank"
+$Repo = "wtfzambo/gastank"
 
 function Get-LatestTag {
     $url = "https://api.github.com/repos/$Repo/releases/latest"

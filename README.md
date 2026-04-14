@@ -28,20 +28,20 @@ The name is a pun on Steve Yegge's <a href='https://github.com/gastownhall/gasto
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/donnaknows/gastank/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/wtfzambo/gastank/main/scripts/install.sh | bash
 ```
 
 ### Windows
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/donnaknows/gastank/main/scripts/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/wtfzambo/gastank/main/scripts/install.ps1 | iex
 ```
 
 Downloads and runs the NSIS installer.
 
 ### Manual download
 
-Grab the latest release from [GitHub Releases](https://github.com/donnaknows/gastank/releases).
+Grab the latest release from [GitHub Releases](https://github.com/wtfzambo/gastank/releases).
 
 ### Run
 

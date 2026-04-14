@@ -7,7 +7,7 @@ priority: optional
 maintainer: Felicity
 description: AI token usage monitor
 vendor: Felicity
-homepage: https://github.com/donnaknows/gastank
+homepage: https://github.com/wtfzambo/gastank
 license: Proprietary
 contents:
   - src: ./bin/gastank

@@ -1,26 +1,35 @@
-# Gastank
+<!-- markdownlint-disable MD045 -->
 
-Gastank is a cross-platform desktop tray app for tracking AI token usage across providers, built with Wails v3 + React.
+<p align='center'>
+  <img src='./assets/Icon1024.png' width='20%'>
+</p>
 
-- Native system tray app (macOS, Windows, Linux)
-- GitHub Copilot usage tracking with auto-refresh
-- Built-in CLI for terminal use (`gastank usage`)
-- OAuth device flow authentication (no env vars needed)
+<h1 align="center">Gastank</h1>
 
-## Install
+<h4 align='center'>
+Gastank is a tiny cross-platform desktop menu bar / tray app for tracking AI usage across providers.
+</h4>
+
+<p align="center">
+The name is a pun on Steve Yegge's <a href='https://github.com/gastownhall/gastown'>Gastown</a> project.
+</p>
+
+<p align='center'>
+  <img src='./assets/snapshot.png' width='70%'>
+</p>
+
+> [!NOTE]
+> The first release supports Github Copilot. More providers will be added depending on need and how much I decide to care.
+
+---
+
+## Install & Run
 
 ### macOS / Linux
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/donnaknows/gastank/main/scripts/install.sh | bash
 ```
-
-**macOS**: Installs `gastank.app` to `/Applications`. Since the app is not notarized, you may need to run:
-```bash
-xattr -cr /Applications/gastank.app
-```
-
-**Linux**: Installs an AppImage to `~/.local/bin/gastank-app`.
 
 ### Windows
 
@@ -34,33 +43,18 @@ Downloads and runs the NSIS installer.
 
 Grab the latest release from [GitHub Releases](https://github.com/donnaknows/gastank/releases).
 
-## Releases
+### Run
 
-Releases are managed with [`googleapis/release-please-action`](https://github.com/googleapis/release-please-action).
+Search for "gastank" in your App list and simply start it. It will immediately go in your system tray / menu bar.
 
-- Conventional commits on `main` update a Release PR
-- Merging that Release PR creates the version tag and GitHub release
-- The same workflow then builds and uploads macOS, Windows, and Linux artifacts
-
-No manual tagging is required in the normal flow.
-
-## Authentication
-
-Gastank authenticates via the GitHub OAuth device flow — no environment variables or external CLI required.
-
-On first launch, open the app and click **Sign in with GitHub**. You'll be shown a short code and a URL. Open the URL in your browser, enter the code, and approve. The app polls for approval and stores the resulting token at:
-
-- **Linux:** `~/.config/gastank/credentials.json`
-- **macOS:** `~/Library/Application Support/gastank/credentials.json`
-- **Windows:** `%AppData%\gastank\credentials.json`
-
-Credentials are shared between the GUI and CLI — once logged in via the app, the CLI works without any further setup.
-
-If the token does not have the right access, or the account is not Copilot-enabled, GitHub will typically answer with `401`, `403`, or `404` and the adapter surfaces that response back to the caller.
+> [!HINT]
+> Look for this icon: <img src="./assets/b&w.svg" width="4.5%">
 
 ## CLI Usage
 
 The binary includes a built-in CLI. Log in once via the GUI, then:
+
+It's a bit janky at the moment, but it does its job, if for some arcane reason you need it.
 
 ```bash
 gastank usage                  # fetch Copilot usage (JSON)

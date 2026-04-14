@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/donnaknows/gastank/compare/v0.1.1...v0.1.2) (2026-04-14)
+
+
+### Bug Fixes
+
+* **mac:** use icons.icns for app icon, add CLI symlink ([100f332](https://github.com/donnaknows/gastank/commit/100f33279ec98504e759cce15170bad04994aa73))
+
 ## [0.1.1](https://github.com/donnaknows/gastank/compare/v0.1.0...v0.1.1) (2026-04-14)
 
 

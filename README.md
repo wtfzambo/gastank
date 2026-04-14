@@ -47,8 +47,7 @@ Grab the latest release from [GitHub Releases](https://github.com/donnaknows/gas
 
 Search for "gastank" in your App list and simply start it. It will immediately go in your system tray / menu bar.
 
-> [!HINT]
-> Look for this icon: <img src="./assets/b&w.svg" width="4.5%">
+<i>Look for this icon: </i><img src="./assets/b&w.svg" width="6%" alt="Gastank tray icon">
 
 ## CLI Usage
 

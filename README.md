@@ -1,5 +1,8 @@
 <!-- markdownlint-disable MD045 -->
 
+> [!Warning]
+> This project is archived. Use <https://codexbar.app/> instead.
+
 <p align='center'>
   <img src='./assets/Icon1024.png' width='20%'>
 </p>
